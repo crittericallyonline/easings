@@ -1,6 +1,6 @@
 #include "ease.h"
 
-#ifndef abs
+#if !defined(abs) && !defined(__cplusplus)
 #define abs(x) ((x) < 0 ? -(x) : (x))
 #endif
 
