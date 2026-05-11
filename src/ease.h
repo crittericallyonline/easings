@@ -1,5 +1,5 @@
-#ifndef EASINGS_H
-#define EASINGS_H
+#ifndef EASE_H
+#define EASE_H
 
 #ifdef __cplusplus
 extern "C" {
