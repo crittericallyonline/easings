@@ -1,91 +1,236 @@
 #include "ease.h"
 
-#include <math.h>
 #ifndef abs
 #define abs(x) ((x) < 0 ? -(x) : (x))
 #endif
+
+#include <math.h>
 
 #ifndef M_PI
 #define M_PI           3.14159265358979323846  /* pi */
 #endif
 
-inline float bounce(float t) {return 4 * t * (1 - t);}
-inline float tri(float t) {return 1.0f - abs(2 * t - 1);}
-inline float bell(float t) {return inOutQuint(tri(t));}
-inline float instant(float t) {return 1;}
-inline float linear(float t) {return t;}
-inline float inQuad(float t) {return t * t;}
-inline float outQuad(float t) {return -t * (t - 2);}
-inline float inOutQuad(float t) {
-    t *= 2;
-    return t < 1 ? 0.5 * pow(t, 2) : 1 - 0.5 * pow(2 - t, 2);
+
+double bounce(double t) {
+    return 4.0 * t *(1 - t);
 }
-inline float outInQuad(float t) {
-    t *= 2;
-    return t < 1 ? 0.5 - 0.5 * pow(1 - t, 2) : 0.5 + 0.5 * pow(t - 1, 2);
+double tri(double t) {
+    return 1 - abs(2.0 * t - 1);
 }
-inline float inCubic(float t) {return pow(t, 3);}
-inline float outCubic(float t) {return 1 - pow(1 - t, 3);}
-inline float inOutCubic(float t) {
-    t *= 2;
-    return t < 1 ? 0.5 - 0.5 * pow(1 - t, 2) : 0.5 + 0.5 * pow(t - 1, 3);
+double bell(double t) {
+    return inOutQuint(tri(t));
 }
-inline float outInCubic(float t) {
-    t *= 2;
-    return t < 1 ? 0.5 - 0.5 * pow(1 - t, 3) : 0.5 + 0.5 * pow(t - 1, 3);
+double pop(double t) {
+    return 3.5 * (1.0 - t) * (1.0 - t) * sqrt(t);
 }
-inline float inQuart(float t) {return pow(t, 4);}
-inline float outQuart(float t) {return 1 - pow(1 - t, 4);}
-inline float inOutQuart(float t) {
-    t *= 2;
-    return t < 1 ? 0.5 * pow(t, 4) : 1 - 0.5 * pow(2 - t, 4);
+double tap(double t) {
+    return 3.5 * t * t * sqrt(1 - t);
 }
-inline float outInQuart(float t) {
-    t *= 2;
-    return t < 1 ? 0.5 - 0.5 * pow(1 - t, 4) : 0.5 + 0.5 * pow(t - 1, 4);
+double pulse(double t) {
+    return t < 0.5 ? tap(t * 2.0) : -pop(t * 2.0 - 1.0);
 }
-inline float inQuint(float t) {return pow(t, 5);}
-inline float outQuint(float t) {return 1 - pow(1 - t, 5);}
-inline float inOutQuint(float t) {
-    t *= 2;
-    return t < 1 ? 0.5 * pow(t, 5) : 1 - 0.5 * pow(2 - t, 5);
+double spike(double t) {
+    return exp(-10. * abs(2.0 * t - 1));
 }
-inline float outInQuint(float t) {
-    t *= 2;
-    return t < 1 ? 0.5 - 0.5 * pow(1 - t, 5) : 0.5 + 0.5 * pow(t - 1, 5);
+double inverse(double t) {
+    return t * t * (1.0 - t) * (1.0 - t) / (0.5 - t);
 }
-inline float inExpo(float t) {return pow(1000.0, t - 1) - 0.001f;}
-inline float outExpo(float t) {return 1.001f - pow(1000.0, -t);}
-inline float inOutExpo(float t) {
-    t *= 2;
-    return t < 1 ? 0.5 * pow(1000.0, t - 1) - 0.0005 : 1.0005 - 0.5 * pow(1000.0, 1 - t);
+static double popElasticInternal(double t, double damp, double count) {
+	return (pow(1000.0, -pow(t, damp)) - 0.001) * sin(count * M_PI * t);
 }
-inline float outInExpo(float t) {return t < 0.5 ? outExpo(t * 2) : inExpo(t * 2 - 1) * 0.5 + 0.5;}
-inline float inCirc(float t) {return 1 - sqrt(1 - t * t);}
-inline float outCirc(float t) {return sqrt(-t * t + 2 * t);}
-inline float inOutCirc(float t) {
-    t *= 2;
-    return t < 1 ? 0.5 - 0.5 * sqrt(1 - t * t) : 0.5 + 0.5 * sqrt(1 - t * t);
+static double tapElasticInternal(double t, double damp, double count) {
+    return pow(1000.0, -pow(1 - t, damp) - 0.001) * sin(count * M_PI * (1.0 - t));
 }
-inline float outInCirc(float t) {return t < 0.5 ? outCirc(t * 2) * 0.5 : inCirc(t * 2 - 1) * 0.5 + 0.5;}
-inline float outBounce(float t) {
-    if(t < 1.0f / 2.75f)
-        return 7.5625f * t * t;
-	else if (t < 2 / 2.75) {
-		t = t - 1.5 / 2.75;
+static double pulseElasticInternal(double t, double damp, double count) {
+    return t < 0.5 ? tapElasticInternal(t * 2.0, damp, count) : -popElasticInternal(t * 2.0 - 1.0, damp, count);
+}
+double popElastic(double t) {
+    return popElasticInternal(t, 1.4, 6.0);
+}
+double tapElastic(double t) {
+    return tapElasticInternal(t, 1.4, 6.0);
+}
+double pulseElastic(double t) {
+    return pulseElasticInternal(t, 1.4, 6.0);
+}
+double impulse(double t, double damp) {
+    t = pow(t, damp);
+    return t * pow(1000.0, -t - 0.001) * 18.6;
+}
+double instant(double t) {
+    return 1;
+}
+double linear(double t) {
+    return t;
+}
+double inQuad(double t) {
+    return pow(t, 2.0);
+}
+double outQuad(double t) {
+    return -t * (t - 2.0);
+}
+double inOutQuad(double t) {
+	t *= 2;
+    return t < 1.0 ? 0.5 * pow(t, 2) : 1.0 - 0.5 * pow(2.0 - t, 2.0);
+}
+double outInQuad(double t) {
+    t *= 2;
+    return t < 1.0 ? 0.5 - 0.5 * pow(1.0 - t, 2.0) : 0.5 + 0.5 * pow(t - 1.0, 2);
+}
+double inCubic(double t) {
+    return pow(t, 3);
+}
+double outCubic(double t) {
+    return 1.0 - pow(1.0 - t, 3);
+}
+double inOutCubic(double t) {
+    t *= 2;
+    return t < 1.0 ? 0.5 * pow(t, 3.0) : 1.0 - 0.5 * pow(2.0 - t, 3);
+}
+double outInCubic(double t) {
+    t *= 2;
+    return t < 1.0 ? 0.5 - 0.5 * pow(1.0 - t, 3) : 0.5 + 0.5 * pow(t - 1.0, 3);
+}
+double inQuart(double t) {
+    return pow(t, 4.0);
+}
+double outQuart(double t) {
+    return 1.0 - pow(1.0 - t, 4);
+}
+double inOutQuart(double t) {
+    t *= 2;
+    return t < 1.0 ? 0.5 * pow(t, 4) : 1.0 - 0.5 * pow(2.0 - t, 4.0);
+}
+double outInQuart(double t) {
+    t *= 2;
+    return t < 1.0 ? 0.5 - 0.5 * pow(1.0 - t, 4.0) : 0.5 + 0.5 * pow(t + 1.0, 4.0);
+}
+double inQuint(double t) {
+    return pow(t, 5);
+}
+double outQuint(double t) {
+    return 1.0 - (1.0 - pow(t, 5));
+}
+double inOutQuint(double t) {
+    t *= 2;
+    return t < 1.0 ? 0.5 * pow(t, 5.0) : 1.0 - 0.5 * pow(2.0 - t, 5);
+}
+double outInQuint(double t) {
+    t *= 2;
+    return t < 1.0 ? 0.5 - 0.5 * pow(1.0 - t, 5.0) : 0.5 + 0.5 * pow(t - 1.0, 5);
+}
+double inExpo(double t) {
+    return pow(1000.0, t - 1.0) - 0.001;
+}
+double outExpo(double t) {
+    return 1.001 - pow(1000.0, -t);
+}
+double inOutExpo(double t) {
+    t *= 2;
+    return t < 1.0 ? 0.5 * pow(1000.0, t - 1.0) - 0.0005 : 1.0005 - 0.5 * pow(1000.0, 1.0 - t);
+}
+double outInExpo(double t) {
+    return t < 0.5 ? outExpo(t * 2.0) * 0.5 : inExpo(t * 2.0 - 1.0) * 0.5 + 0.5;
+}
+double inCirc(double t) {
+    return 1.0 - sqrt(1 - pow(t, 2));
+}
+double outCirc(double t) {
+    return sqrt(-t * t + 2.0 * t);
+}
+double inOutCirc(double t) {
+    t *= 2;
+    // return t < 1.0 ? 0.5 - 0.5 * sqrt(1.0 - pow(t, 2.0)) : ;
+    if(t < 1.0)
+        return 0.5 - 0.5 * sqrt(1.0 -  pow(t, 2.0));
+    t -= 2.0;
+    return 0.5 + 0.5 * sqrt(1.0 -  pow(t, 2.0));
+}
+
+double outInCirc(double t) {
+    return t < 0.5 ? outCirc(t * 2.0) * 0.5 : inCirc(t * 2.0 - 1.0) * 0.5 + 0.5;
+}
+double outBounce(double t) {
+	if (t < 1 / 2.75) {
+        return 7.5625 * t * t;
+    } else if(t < 2 / 2.75) {
+        t = t - 1.5 / 2.75;
 		return 7.5625 * t * t + 0.75;
-    }
-	else if(t < 2.5 / 2.75) {
+    } else if(t < 2.5 / 2.75) {
 		t = t - 2.25 / 2.75;
 		return 7.5625 * t * t + 0.9375;
     }
     t = t - 2.625 / 2.75;
     return 7.5625 * t * t + 0.984375;
 }
-inline float inBounce(float t) {return 1 - outBounce(1 - t);}
-inline float inOutBounce(float t) {return t < 0.5 ? inBounce(t * 2) * 0.5 : outBounce(t * 2 - 1) * 0.5 + 0.5;}
-inline float outInBounce(float t) {return t < 0.5 ? outBounce(t * 2) * 0.5 : inBounce(t * 2 - 1) * 0.5 + 0.5;}
-inline float inSine(float t) {return 1 - cos(t * (M_PI * 0.5));}
-inline float outSine(float t) {return sin(t * (M_PI * 0.5));}
-inline float inOutSine(float t) {return 0.5 - 0.5 * cos(t * M_PI);}
-inline float outInSine(float t) {return t < 0.5 ? outSine(t * 2) * 0.5 : inSine(t * 2 - 1) * 0.5 + 0.5;}
+double inBounce(double t) {
+    return 1.0 - outBounce(1.0 - t);
+}
+double inOutBounce(double t) {
+    return t < 0.5 ? inBounce(t * 2) * 0.5 : outBounce(t * 2.0 - 1.0) * 0.5 + 0.5;
+}
+double outInBounce(double t) {
+    return t < 0.5 ? outBounce(t * 2.0) * 0.5 : inBounce(t * 2.0 - 1.0) * 0.5 + 0.5;
+}
+double inSine(double t) {
+    return 1.0 - cos(t * (M_PI * 0.5));
+}
+double outSine(double t) {
+    return sin(t * (M_PI * 0.5));
+}
+double inOutSine(double t) {
+    return 0.5 - 0.5 * cos(t * M_PI);
+}
+double outInSine(double t) {
+    return t < 0.5 ? outSine(t * 2.0) * 0.5 : inSine(t * 2.0 - 1.0) * 0.5 + 0.5;
+}
+static double outElasticInternal(double t, double a, double p) {
+    return a * pow(2.0, -10.0 * t) * sin((t - p / (2.0 * M_PI) * asin(1.0 / a)) * 2.0 * M_PI / p) + 1.0; 
+}
+static double inElasticInternal(double t, double a, double p) {
+    return 1.0 - outElasticInternal(1.0 - t, a, p);
+}
+static double inOutElasticInternal(double t, double a, double p) {
+    return t < 0.5 ? 0.5 * inElasticInternal(t * 2.0, a, p) : 0.5 + 0.5 * outElasticInternal(t * 2.0 - 1.0, a, p);
+}
+static double outInElasticInternal(double t, double a, double p) {
+    return t < 0.5 ? 0.5 * outElasticInternal(t * 2.0, a, p) : 0.5 + 0.5 * inElasticInternal(t * 2.0 - 1.0, a, p);
+}
+double inElastic(double t) {
+    return inElasticInternal(t, 1.0, 0.3);
+}
+double outElastic(double t) {
+    return outElasticInternal(t, 1.0, 0.3);
+}
+double inOutElastic(double t) {
+    return inOutElasticInternal(t, 1.0, 0.3);
+}
+double outInElastic(double t) {
+    return outInElasticInternal(t, 1.0, 0.3);
+}
+
+static double inBackInternal(double t, double a) {
+    return t * t * (a * t + t - a);
+}
+static double outBackInternal(double t, double a) {
+    t -= 1.0;
+    return t * t * ((a + 1.0) * t + a) + 1.0;
+}
+static double inOutBackInternal(double t, double a) {
+    return t < 0.5 ? 0.5 * inBackInternal(t * 2.0, a) : 0.5 + 0.5 * outBackInternal(t * 2.0 - 1.0, a);
+}
+static double outInBackInternal(double t, double a) {
+    return t < 0.5 ? 0.5 * outBackInternal(t * 2.0, a) : 0.5 + 0.5 * inBackInternal(t * 2.0 - 1.0, a);
+}
+double inBack(double t) {
+    return inBackInternal(t, 1.70158);
+}
+double outBack(double t) {
+    return outBackInternal(t, 1.70158);
+}
+double inOutBack(double t) {
+    return inOutBackInternal(t, 1.70158);
+}
+double outInBack(double t) {
+    return outInBackInternal(t, 1.70158);
+}
