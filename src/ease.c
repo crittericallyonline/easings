@@ -9,7 +9,6 @@
 #define M_PI           3.14159265358979323846  /* pi */
 #endif
 
-inline float interpolate(float x, float a, float b) {return (b - a) * x + a;}
 inline float bounce(float t) {return 4 * t * (1 - t);}
 inline float tri(float t) {return 1.0f - abs(2 * t - 1);}
 inline float bell(float t) {return inOutQuint(tri(t));}
